@@ -187,6 +187,114 @@ env = {"OPENMEMORY_AUTH_HEADER" = "Bearer <your-token>"}
 
 After editing config, restart your Codex client/session.
 
+## Make Open Memory usage automatic across agents
+
+Connecting the MCP server is only half of the setup. If you want agents to regularly retrieve from and write to Open Memory without repeating the same prompt every time, add a persistent instruction file that tells each agent how to use memory.
+
+Recommended shared instruction text:
+
+```md
+Use the connected Open Memory MCP server as shared long-term memory when it is relevant.
+
+Policy:
+- Before answering, retrieve relevant memory for the user, project, repo conventions, prior decisions, and ongoing work if that context would improve the answer.
+- After completing meaningful work, store only durable, high-signal facts:
+  - user preferences
+  - project conventions
+  - architectural or operational decisions
+  - stable troubleshooting knowledge
+  - unresolved follow-ups worth carrying forward
+- Do not store secrets, tokens, passwords, API keys, auth headers, `.env` contents, or raw credentials.
+- Do not store transient chatter, low-value logs, or duplicate memories.
+- Prefer short, factual summaries over verbose notes.
+- If memory is not relevant, do not force its use.
+```
+
+Suggested pattern:
+
+1. Save the text above in one canonical file on your machine, for example `~/.agents/AGENTS.md`.
+2. Reuse it from tool-specific instruction locations with symlinks or copies.
+3. Keep repo-specific overrides in repo-local instruction files when needed.
+
+### Codex CLI and Codex for VS Code
+
+Global instructions:
+
+- `~/.codex/AGENTS.md`
+
+Recommended setup:
+
+```bash
+mkdir -p ~/.agents ~/.codex
+ln -sf ~/.agents/AGENTS.md ~/.codex/AGENTS.md
+```
+
+Codex will then see the Open Memory usage policy in future chats, while the MCP server remains configured through `~/.codex/config.toml`.
+
+For repo-specific behavior, add an `AGENTS.md` file in the repository root or a nearer subdirectory. Repo-local instructions take precedence for work in that tree.
+
+### Claude Code
+
+Global instructions:
+
+- `~/.claude/CLAUDE.md`
+
+Recommended setup:
+
+```bash
+mkdir -p ~/.claude
+ln -sf ~/.agents/AGENTS.md ~/.claude/CLAUDE.md
+```
+
+Claude Code automatically loads `CLAUDE.md` memory/instruction files, so this is the simplest way to make Open Memory usage part of future Claude Code chats.
+
+For repo-specific behavior, add `CLAUDE.md` in the project root.
+
+Claude also needs the Open Memory MCP server configured separately. Add the MCP server in:
+
+- `~/.claude.json`
+
+Keep the instruction file and the MCP server configuration as two separate pieces:
+
+- `~/.claude/CLAUDE.md` tells Claude when and how to use memory
+- `~/.claude.json` tells Claude how to connect to the Open Memory MCP server
+
+### GitHub Copilot in VS Code
+
+Copilot does not rely on `~/.github/copilot-instructions.md` as a standard automatic discovery path by itself. To use one shared global file in VS Code, point Copilot's global custom instructions setting to your canonical file.
+
+One workable setup is:
+
+```bash
+mkdir -p ~/.github
+ln -sf ~/.agents/AGENTS.md ~/.github/copilot-instructions.md
+```
+
+Then in VS Code:
+
+1. Open Copilot settings.
+2. Enable custom instructions.
+3. Set `Chat: Instructions Files Locations` to `~/.github/copilot-instructions.md`.
+
+If you prefer a documented repo-based setup instead of a user-level VS Code setting, create:
+
+- `.github/copilot-instructions.md` for repository-wide instructions
+- `.github/instructions/*.instructions.md` for path-specific instructions
+- `AGENTS.md` for agent-oriented repo instructions
+
+Use repo files when you want the behavior to travel with the repository or apply to other collaborators.
+
+### GitHub.com Copilot Chat
+
+GitHub.com personal instructions are configured in the GitHub UI, not by a local file path. If you use Copilot Chat on GitHub.com and want the same policy there, copy the instruction text into your personal Copilot instructions in the GitHub web interface.
+
+### Notes
+
+- These instruction files tell the agent when and how to use Open Memory; they do not replace the MCP server connection itself.
+- Codex, Claude Code, and Copilot each have their own precedence rules between global and repo-local instruction files.
+- Never place secrets in these instruction files. Keep tokens and passwords in the appropriate config or secret store only.
+- If you want setup instructions for another agent, IDE, or harness, open an issue or contact us and we can document the correct integration pattern.
+
 ## Self-host behind Nginx (`/open-memory`)
 
 If you want to expose this service at:
