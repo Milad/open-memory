@@ -15,9 +15,10 @@ SELECT format('ALTER ROLE %I LOGIN PASSWORD %L', :'mcp_user', :'mcp_password')
 WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'mcp_user') \gexec
 
 SELECT format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), :'mcp_user') \gexec
-SELECT format('GRANT USAGE ON SCHEMA public TO %I', :'mcp_user') \gexec
-SELECT format('GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.memory_nodes TO %I', :'mcp_user') \gexec
-SELECT format('GRANT USAGE, SELECT ON SEQUENCE public.memory_nodes_id_seq TO %I', :'mcp_user') \gexec
+SELECT format('GRANT USAGE ON SCHEMA open_memory TO %I', :'mcp_user') \gexec
+SELECT format('GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE open_memory.memory_nodes TO %I', :'mcp_user') \gexec
+SELECT format('GRANT USAGE, SELECT ON SEQUENCE open_memory.memory_nodes_id_seq TO %I', :'mcp_user') \gexec
+SELECT format('REVOKE ALL ON SCHEMA public FROM %I', :'mcp_user') \gexec
 SELECT format('REVOKE ALL ON SCHEMA ai FROM %I', :'mcp_user')
 WHERE EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'ai') \gexec
 SELECT format('REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA ai FROM %I', :'mcp_user')
@@ -26,5 +27,5 @@ SELECT format('REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ai FROM %I', :'m
 WHERE EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'ai') \gexec
 SELECT format('REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA ai FROM %I', :'mcp_user')
 WHERE EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'ai') \gexec
-SELECT format('ALTER ROLE %I IN DATABASE %I SET search_path = public', :'mcp_user', current_database()) \gexec
+SELECT format('ALTER ROLE %I IN DATABASE %I SET search_path = open_memory', :'mcp_user', current_database()) \gexec
 SQL

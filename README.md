@@ -77,7 +77,7 @@ In the current Compose configuration, the pgEdge built-in LLM feature is disable
 Fresh installs create two database roles by default:
 
 - `memory_admin`: owner/admin role used by PostgreSQL setup, pgai install, and the vectorizer worker
-- `memory_mcp`: least-privilege role used only by the MCP server, granted access to `public.memory_nodes` and explicitly revoked from `ai`
+- `memory_mcp`: least-privilege role used only by the MCP server, granted access to `open_memory.memory_nodes` and explicitly revoked from `ai`
 
 `memory_mcp` is created during the initial PostgreSQL bootstrap from `init-db/02-mcp-role.sh`.
 
@@ -110,13 +110,13 @@ docker compose logs -f db pgai-installer vectorizer-worker mcp pgbackups
 
 ## Automatic embeddings (pgai Vectorizer)
 
-This stack enables automatic embedding sync for `public.memory_nodes.content`:
+This stack enables automatic embedding sync for `open_memory.memory_nodes.content`:
 
 - `pgai-installer` runs once, executes `pgai install`, then applies `pgai-init/vectorizer.sql`
 - `vectorizer-worker` continuously processes queue jobs
 - new/updated rows are embedded asynchronously into `memory_nodes.embedding`
 
-The `ai` schema remains installed for pgai/vectorizer internals, but the MCP server connects with the restricted `memory_mcp` role and is explicitly revoked from `ai`, so schema discovery stays focused on `public.memory_nodes`.
+The `ai` schema remains installed for pgai/vectorizer internals, but the MCP server connects with the restricted `memory_mcp` role and is explicitly revoked from `ai`, so schema discovery stays focused on `open_memory.memory_nodes`.
 
 Check vectorizer status:
 
@@ -135,7 +135,7 @@ SELECT id, name FROM ai.vectorizer ORDER BY id;
 
 -- 3) embeddings present
 SELECT id, content, embedding IS NOT NULL AS has_embedding
-FROM public.memory_nodes
+FROM open_memory.memory_nodes
 ORDER BY id DESC
 LIMIT 20;
 ```
@@ -150,7 +150,7 @@ docker compose exec -T -e PGPASSWORD="$DBPASS" db psql \
   -U "$DBUSER" -d "$DBNAME" \
   -c "SELECT extname FROM pg_extension WHERE extname IN ('ai', 'vector') ORDER BY extname;" \
   -c "SELECT id, name FROM ai.vectorizer ORDER BY id;" \
-  -c "SELECT id, content, embedding IS NOT NULL AS has_embedding FROM public.memory_nodes ORDER BY id DESC LIMIT 20;"
+  -c "SELECT id, content, embedding IS NOT NULL AS has_embedding FROM open_memory.memory_nodes ORDER BY id DESC LIMIT 20;"
 ```
 
 If query 3 returns zero rows, there is nothing to embed yet. Insert/update rows in `memory_nodes` and check again after a short delay.
@@ -196,7 +196,7 @@ Recommended shared instruction text:
 ```md
 Use the connected Open Memory MCP server as shared long-term memory when it is relevant.
 
-Policy:
+Open Memory MCP server Policy:
 - Before answering, retrieve relevant memory for the user, project, repo conventions, prior decisions, and ongoing work if that context would improve the answer.
 - After completing meaningful work, store only durable, high-signal facts:
   - user preferences
